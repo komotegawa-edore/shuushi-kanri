@@ -225,9 +225,9 @@ export default function TransactionsPage() {
                   <SelectValue placeholder="全て" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">全て</SelectItem>
-                  <SelectItem value="income">売上</SelectItem>
-                  <SelectItem value="expense">経費</SelectItem>
+                  <SelectItem value="all" label="全て">全て</SelectItem>
+                  <SelectItem value="income" label="売上">売上</SelectItem>
+                  <SelectItem value="expense" label="経費">経費</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -377,8 +377,8 @@ export default function TransactionsPage() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="income">売上</SelectItem>
-                  <SelectItem value="expense">経費</SelectItem>
+                  <SelectItem value="income" label="売上">売上</SelectItem>
+                  <SelectItem value="expense" label="経費">経費</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -412,7 +412,7 @@ export default function TransactionsPage() {
                 </SelectTrigger>
                 <SelectContent>
                   {filteredCategories.map((category) => (
-                    <SelectItem key={category.id} value={category.id}>
+                    <SelectItem key={category.id} value={category.id} label={category.name}>
                       {category.name}
                     </SelectItem>
                   ))}

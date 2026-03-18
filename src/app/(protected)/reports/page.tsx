@@ -165,7 +165,7 @@ export default function ReportsPage() {
           </SelectTrigger>
           <SelectContent>
             {yearOptions.map((year) => (
-              <SelectItem key={year} value={year}>
+              <SelectItem key={year} value={year} label={`${year}年`}>
                 {year}年
               </SelectItem>
             ))}
@@ -188,7 +188,7 @@ export default function ReportsPage() {
             </CardHeader>
             <CardContent>
               <div className="h-[400px] w-full">
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                   <BarChart data={monthlyData}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="month" />
@@ -226,7 +226,7 @@ export default function ReportsPage() {
                   </p>
                 ) : (
                   <div className="h-[350px] w-full">
-                    <ResponsiveContainer width="100%" height="100%">
+                    <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                       <PieChart>
                         <Pie
                           data={categoryData.incomeData}
@@ -270,7 +270,7 @@ export default function ReportsPage() {
                   </p>
                 ) : (
                   <div className="h-[350px] w-full">
-                    <ResponsiveContainer width="100%" height="100%">
+                    <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                       <PieChart>
                         <Pie
                           data={categoryData.expenseData}

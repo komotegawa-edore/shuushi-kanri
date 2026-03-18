@@ -48,12 +48,12 @@ export async function getTransactions(
   userId: string,
   filters?: { type?: "income" | "expense"; startDate?: string; endDate?: string }
 ) {
-  let q = query(transactionsCol(userId), orderBy("date", "desc"));
-  if (filters?.type) {
-    q = query(transactionsCol(userId), where("type", "==", filters.type), orderBy("date", "desc"));
-  }
+  const q = query(transactionsCol(userId), orderBy("date", "desc"));
   const snap = await getDocs(q);
   let results = snap.docs.map((d) => ({ id: d.id, ...d.data() } as Transaction));
+  if (filters?.type) {
+    results = results.filter((t) => t.type === filters.type);
+  }
   if (filters?.startDate) {
     results = results.filter((t) => t.date >= filters.startDate!);
   }

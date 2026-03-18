@@ -300,8 +300,8 @@ export default function SettingsPage() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="income">売上</SelectItem>
-                  <SelectItem value="expense">経費</SelectItem>
+                  <SelectItem value="income" label="売上">売上</SelectItem>
+                  <SelectItem value="expense" label="経費">経費</SelectItem>
                 </SelectContent>
               </Select>
             </div>

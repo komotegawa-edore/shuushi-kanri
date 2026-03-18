@@ -1,8 +1,15 @@
 "use client";
 
 import { useMemo } from "react";
-import { format, startOfMonth, endOfMonth, subMonths } from "date-fns";
-import { TrendingUp, TrendingDown, Wallet, Receipt } from "lucide-react";
+import {
+  format,
+  startOfMonth,
+  endOfMonth,
+  startOfYear,
+  endOfYear,
+  subMonths,
+} from "date-fns";
+import { TrendingUp, TrendingDown, Wallet, Receipt, Calendar } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTransactions } from "@/hooks/useTransactions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,6 +32,8 @@ export default function DashboardPage() {
   const prevMonth = subMonths(now, 1);
   const prevMonthStart = format(startOfMonth(prevMonth), "yyyy-MM-dd");
   const prevMonthEnd = format(endOfMonth(prevMonth), "yyyy-MM-dd");
+  const yearStart = format(startOfYear(now), "yyyy-MM-dd");
+  const yearEnd = format(endOfYear(now), "yyyy-MM-dd");
 
   const { transactions: currentTransactions, loading: currentLoading } =
     useTransactions({
@@ -36,6 +45,12 @@ export default function DashboardPage() {
     useTransactions({
       startDate: prevMonthStart,
       endDate: prevMonthEnd,
+    });
+
+  const { transactions: yearTransactions, loading: yearLoading } =
+    useTransactions({
+      startDate: yearStart,
+      endDate: yearEnd,
     });
 
   const summary = useMemo(() => {
@@ -70,13 +85,23 @@ export default function DashboardPage() {
     };
   }, [currentTransactions, prevTransactions]);
 
-  const recentTransactions = useMemo(() => {
-    return [...currentTransactions]
-      .sort((a, b) => b.date.localeCompare(a.date))
-      .slice(0, 5);
-  }, [currentTransactions]);
+  const yearSummary = useMemo(() => {
+    const income = yearTransactions
+      .filter((t) => t.type === "income")
+      .reduce((sum, t) => sum + t.amount, 0);
+    const expense = yearTransactions
+      .filter((t) => t.type === "expense")
+      .reduce((sum, t) => sum + t.amount, 0);
+    return { income, expense, profit: income - expense };
+  }, [yearTransactions]);
 
-  const loading = currentLoading || prevLoading;
+  const recentTransactions = useMemo(() => {
+    return [...yearTransactions]
+      .sort((a, b) => b.date.localeCompare(a.date))
+      .slice(0, 10);
+  }, [yearTransactions]);
+
+  const loading = currentLoading || prevLoading || yearLoading;
 
   if (loading) {
     return (
@@ -90,7 +115,7 @@ export default function DashboardPage() {
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">ダッシュボード</h1>
 
-      {/* Summary Cards */}
+      {/* Monthly Summary Cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -146,6 +171,51 @@ export default function DashboardPage() {
         </Card>
       </div>
 
+      {/* Annual Summary Cards */}
+      <div>
+        <h2 className="text-lg font-semibold mb-3">
+          <Calendar className="size-4 inline mr-2" />
+          {now.getFullYear()}年 年間サマリー
+        </h2>
+        <div className="grid gap-4 sm:grid-cols-3">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">年間売上</CardTitle>
+              <TrendingUp className="size-4 text-blue-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-blue-600">
+                ¥{yearSummary.income.toLocaleString()}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">年間経費</CardTitle>
+              <Receipt className="size-4 text-orange-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-orange-600">
+                ¥{yearSummary.expense.toLocaleString()}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">年間利益</CardTitle>
+              <Wallet className="size-4 text-green-500" />
+            </CardHeader>
+            <CardContent>
+              <div className={`text-2xl font-bold ${yearSummary.profit >= 0 ? "text-green-600" : "text-red-600"}`}>
+                ¥{yearSummary.profit.toLocaleString()}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
       {/* Recent Transactions */}
       <Card>
         <CardHeader>
@@ -154,7 +224,7 @@ export default function DashboardPage() {
         <CardContent>
           {recentTransactions.length === 0 ? (
             <p className="text-center text-muted-foreground py-4">
-              今月の取引はまだありません
+              取引はまだありません
             </p>
           ) : (
             <Table>
