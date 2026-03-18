@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useState, useMemo } from "react";
 import {
   format,
   startOfMonth,
@@ -8,11 +8,28 @@ import {
   startOfYear,
   endOfYear,
   subMonths,
+  addMonths,
 } from "date-fns";
-import { TrendingUp, TrendingDown, Wallet, Receipt, Calendar } from "lucide-react";
+import {
+  TrendingUp,
+  TrendingDown,
+  Wallet,
+  Receipt,
+  Calendar,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTransactions } from "@/hooks/useTransactions";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -23,44 +40,64 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 
+const MONTH_NAMES = [
+  "1月", "2月", "3月", "4月", "5月", "6月",
+  "7月", "8月", "9月", "10月", "11月", "12月",
+];
+
 export default function DashboardPage() {
   const { user } = useAuth();
-
   const now = new Date();
-  const currentMonthStart = format(startOfMonth(now), "yyyy-MM-dd");
-  const currentMonthEnd = format(endOfMonth(now), "yyyy-MM-dd");
-  const prevMonth = subMonths(now, 1);
+
+  // 選択中の年月
+  const [selectedDate, setSelectedDate] = useState(now);
+  const [selectedYear, setSelectedYear] = useState(now.getFullYear());
+
+  const selectedMonthStart = format(startOfMonth(selectedDate), "yyyy-MM-dd");
+  const selectedMonthEnd = format(endOfMonth(selectedDate), "yyyy-MM-dd");
+  const prevMonth = subMonths(selectedDate, 1);
   const prevMonthStart = format(startOfMonth(prevMonth), "yyyy-MM-dd");
   const prevMonthEnd = format(endOfMonth(prevMonth), "yyyy-MM-dd");
-  const yearStart = format(startOfYear(now), "yyyy-MM-dd");
-  const yearEnd = format(endOfYear(now), "yyyy-MM-dd");
+  const yearStart = format(startOfYear(new Date(selectedYear, 0, 1)), "yyyy-MM-dd");
+  const yearEnd = format(endOfYear(new Date(selectedYear, 0, 1)), "yyyy-MM-dd");
 
-  const { transactions: currentTransactions, loading: currentLoading } =
-    useTransactions({
-      startDate: currentMonthStart,
-      endDate: currentMonthEnd,
-    });
+  const isCurrentMonth =
+    selectedDate.getFullYear() === now.getFullYear() &&
+    selectedDate.getMonth() === now.getMonth();
+
+  const { transactions: selectedTransactions, loading: selectedLoading } =
+    useTransactions({ startDate: selectedMonthStart, endDate: selectedMonthEnd });
 
   const { transactions: prevTransactions, loading: prevLoading } =
-    useTransactions({
-      startDate: prevMonthStart,
-      endDate: prevMonthEnd,
-    });
+    useTransactions({ startDate: prevMonthStart, endDate: prevMonthEnd });
 
   const { transactions: yearTransactions, loading: yearLoading } =
-    useTransactions({
-      startDate: yearStart,
-      endDate: yearEnd,
-    });
+    useTransactions({ startDate: yearStart, endDate: yearEnd });
 
+  // 年の選択肢（過去5年）
+  const yearOptions = useMemo(() => {
+    const years: number[] = [];
+    for (let i = 0; i < 5; i++) years.push(now.getFullYear() - i);
+    return years;
+  }, []);
+
+  // 月ナビゲーション
+  const goToPrevMonth = () => setSelectedDate((d) => subMonths(d, 1));
+  const goToNextMonth = () => {
+    const next = addMonths(selectedDate, 1);
+    if (next <= now) setSelectedDate(next);
+  };
+  const goToCurrentMonth = () => setSelectedDate(now);
+
+  // 月次サマリー
   const summary = useMemo(() => {
-    const currentIncome = currentTransactions
+    const income = selectedTransactions
       .filter((t) => t.type === "income")
       .reduce((sum, t) => sum + t.amount, 0);
-    const currentExpense = currentTransactions
+    const expense = selectedTransactions
       .filter((t) => t.type === "expense")
       .reduce((sum, t) => sum + t.amount, 0);
-    const currentProfit = currentIncome - currentExpense;
+    const profit = income - expense;
 
     const prevIncome = prevTransactions
       .filter((t) => t.type === "income")
@@ -72,19 +109,15 @@ export default function DashboardPage() {
 
     const profitChange =
       prevProfit !== 0
-        ? ((currentProfit - prevProfit) / Math.abs(prevProfit)) * 100
-        : currentProfit > 0
+        ? ((profit - prevProfit) / Math.abs(prevProfit)) * 100
+        : profit > 0
           ? 100
           : 0;
 
-    return {
-      income: currentIncome,
-      expense: currentExpense,
-      profit: currentProfit,
-      profitChange,
-    };
-  }, [currentTransactions, prevTransactions]);
+    return { income, expense, profit, profitChange };
+  }, [selectedTransactions, prevTransactions]);
 
+  // 年間サマリー
   const yearSummary = useMemo(() => {
     const income = yearTransactions
       .filter((t) => t.type === "income")
@@ -95,13 +128,14 @@ export default function DashboardPage() {
     return { income, expense, profit: income - expense };
   }, [yearTransactions]);
 
-  const recentTransactions = useMemo(() => {
-    return [...yearTransactions]
-      .sort((a, b) => b.date.localeCompare(a.date))
-      .slice(0, 10);
-  }, [yearTransactions]);
+  // 選択月の取引一覧
+  const monthTransactions = useMemo(() => {
+    return [...selectedTransactions].sort((a, b) =>
+      b.date.localeCompare(a.date)
+    );
+  }, [selectedTransactions]);
 
-  const loading = currentLoading || prevLoading || yearLoading;
+  const loading = selectedLoading || prevLoading || yearLoading;
 
   if (loading) {
     return (
@@ -111,15 +145,40 @@ export default function DashboardPage() {
     );
   }
 
+  const monthLabel = `${selectedDate.getFullYear()}年${selectedDate.getMonth() + 1}月`;
+
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">ダッシュボード</h1>
+
+      {/* Month Navigator */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <Button variant="outline" size="icon" onClick={goToPrevMonth}>
+          <ChevronLeft className="size-4" />
+        </Button>
+        <span className="text-lg font-semibold min-w-[140px] text-center">
+          {monthLabel}
+        </span>
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={goToNextMonth}
+          disabled={isCurrentMonth}
+        >
+          <ChevronRight className="size-4" />
+        </Button>
+        {!isCurrentMonth && (
+          <Button variant="ghost" size="sm" onClick={goToCurrentMonth}>
+            今月に戻る
+          </Button>
+        )}
+      </div>
 
       {/* Monthly Summary Cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">今月の売上</CardTitle>
+            <CardTitle className="text-sm font-medium">売上</CardTitle>
             <TrendingUp className="size-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -131,7 +190,7 @@ export default function DashboardPage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">今月の経費</CardTitle>
+            <CardTitle className="text-sm font-medium">経費</CardTitle>
             <Receipt className="size-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -143,7 +202,7 @@ export default function DashboardPage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">今月の利益</CardTitle>
+            <CardTitle className="text-sm font-medium">利益</CardTitle>
             <Wallet className="size-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -173,10 +232,27 @@ export default function DashboardPage() {
 
       {/* Annual Summary Cards */}
       <div>
-        <h2 className="text-lg font-semibold mb-3">
-          <Calendar className="size-4 inline mr-2" />
-          {now.getFullYear()}年 年間サマリー
-        </h2>
+        <div className="flex items-center gap-3 mb-3">
+          <Calendar className="size-4" />
+          <h2 className="text-lg font-semibold">年間サマリー</h2>
+          <Select
+            value={selectedYear}
+            onValueChange={(v) => {
+              if (v != null) setSelectedYear(v as number);
+            }}
+          >
+            <SelectTrigger className="w-[100px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {yearOptions.map((y) => (
+                <SelectItem key={y} value={y} label={`${y}年`}>
+                  {y}年
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
         <div className="grid gap-4 sm:grid-cols-3">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -208,7 +284,9 @@ export default function DashboardPage() {
               <Wallet className="size-4 text-green-500" />
             </CardHeader>
             <CardContent>
-              <div className={`text-2xl font-bold ${yearSummary.profit >= 0 ? "text-green-600" : "text-red-600"}`}>
+              <div
+                className={`text-2xl font-bold ${yearSummary.profit >= 0 ? "text-green-600" : "text-red-600"}`}
+              >
                 ¥{yearSummary.profit.toLocaleString()}
               </div>
             </CardContent>
@@ -216,15 +294,15 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Recent Transactions */}
+      {/* Month's Transactions */}
       <Card>
         <CardHeader>
-          <CardTitle>最近の取引</CardTitle>
+          <CardTitle>{monthLabel}の取引</CardTitle>
         </CardHeader>
         <CardContent>
-          {recentTransactions.length === 0 ? (
+          {monthTransactions.length === 0 ? (
             <p className="text-center text-muted-foreground py-4">
-              取引はまだありません
+              この月の取引はありません
             </p>
           ) : (
             <Table>
@@ -238,7 +316,7 @@ export default function DashboardPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {recentTransactions.map((transaction) => (
+                {monthTransactions.map((transaction) => (
                   <TableRow key={transaction.id}>
                     <TableCell>{transaction.date}</TableCell>
                     <TableCell>
