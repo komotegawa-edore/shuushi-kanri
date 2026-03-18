@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import {
@@ -78,7 +79,10 @@ export default function ProtectedLayout({
       >
         <div className="flex flex-col h-full">
           <div className="flex items-center justify-between p-4 border-b">
-            <h1 className="text-lg font-bold">収支管理</h1>
+            <div className="flex items-center gap-2">
+              <Image src="/icon.png" alt="スット" width={28} height={28} className="rounded-md" />
+              <span className="text-lg font-bold text-blue-600">スット</span>
+            </div>
             <button
               className="lg:hidden"
               onClick={() => setSidebarOpen(false)}
@@ -129,7 +133,10 @@ export default function ProtectedLayout({
           <button onClick={() => setSidebarOpen(true)}>
             <Menu className="h-5 w-5" />
           </button>
-          <h1 className="text-lg font-bold">収支管理</h1>
+          <div className="flex items-center gap-2">
+            <Image src="/icon.png" alt="スット" width={24} height={24} className="rounded-md" />
+            <span className="text-lg font-bold text-blue-600">スット</span>
+          </div>
         </header>
         <div className="p-4 md:p-6 lg:p-8">{children}</div>
       </main>

@@ -15,8 +15,26 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "収支管理 - 個人事業主向け",
-  description: "売上・経費の記録、レポート、請求書作成ができる収支管理アプリ",
+  title: "スット - 個人事業主のための収支管理",
+  description: "タップするだけで経費記録。スムーズなアニメーションで、毎日の記録が心地よい体験に。",
+  icons: {
+    icon: [
+      { url: "/favicon.ico", sizes: "32x32" },
+      { url: "/icon.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: "/icon.png",
+  },
+  openGraph: {
+    title: "スット - 個人事業主のための収支管理",
+    description: "タップするだけで経費記録。スムーズなアニメーションで、毎日の記録が心地よい体験に。",
+    images: [{ url: "/ogp.png", width: 1200, height: 630 }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "スット - 個人事業主のための収支管理",
+    description: "タップするだけで経費記録。スムーズなアニメーションで、毎日の記録が心地よい体験に。",
+    images: ["/ogp.png"],
+  },
 };
 
 export default function RootLayout({
