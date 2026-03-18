@@ -21,6 +21,7 @@ import {
   Client,
   Invoice,
   UserProfile,
+  ExpenseTemplate,
   DEFAULT_EXPENSE_CATEGORIES,
   DEFAULT_INCOME_CATEGORIES,
 } from "@/types";
@@ -181,4 +182,23 @@ export async function updateInvoice(userId: string, id: string, data: Partial<In
 
 export async function deleteInvoice(userId: string, id: string) {
   await deleteDoc(doc(invoicesCol(userId), id));
+}
+
+// ---- Expense Templates ----
+function templatesCol(userId: string) {
+  return collection(db, "users", userId, "expenseTemplates");
+}
+
+export async function getExpenseTemplates(userId: string) {
+  const snap = await getDocs(query(templatesCol(userId), orderBy("name")));
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() } as ExpenseTemplate));
+}
+
+export async function addExpenseTemplate(userId: string, data: Omit<ExpenseTemplate, "id" | "createdAt">) {
+  const ref = await addDoc(templatesCol(userId), { ...data, createdAt: Timestamp.now() });
+  return ref.id;
+}
+
+export async function deleteExpenseTemplate(userId: string, id: string) {
+  await deleteDoc(doc(templatesCol(userId), id));
 }

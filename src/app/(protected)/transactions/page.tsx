@@ -1,10 +1,15 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { useTransactions } from "@/hooks/useTransactions";
 import { useCategories } from "@/hooks/useCategories";
 import { useAuth } from "@/contexts/AuthContext";
-import { Transaction } from "@/types";
+import { Transaction, ExpenseTemplate } from "@/types";
+import {
+  getExpenseTemplates,
+  addExpenseTemplate,
+  deleteExpenseTemplate,
+} from "@/lib/firestore";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -13,17 +18,9 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-  DialogClose,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -34,14 +31,22 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import {
+  Plus,
+  Pencil,
+  Trash2,
+  TrendingUp,
+  TrendingDown,
+  Repeat,
+  Zap,
+  Save,
+} from "lucide-react";
 import { toast } from "sonner";
 
 type TransactionType = "income" | "expense";
 type FilterType = "all" | TransactionType;
 
 interface FormData {
-  type: TransactionType;
   date: string;
   categoryId: string;
   amount: string;
@@ -49,8 +54,7 @@ interface FormData {
   client: string;
 }
 
-const initialFormData: FormData = {
-  type: "income",
+const emptyForm: FormData = {
   date: new Date().toISOString().split("T")[0],
   categoryId: "",
   amount: "",
@@ -61,72 +65,127 @@ const initialFormData: FormData = {
 export default function TransactionsPage() {
   const { user } = useAuth();
 
-  // Filter state
   const [filterType, setFilterType] = useState<FilterType>("all");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
 
-  // Build filters for the hook
   const filters = useMemo(() => {
-    const f: { type?: TransactionType; startDate?: string; endDate?: string } =
-      {};
+    const f: { type?: TransactionType; startDate?: string; endDate?: string } = {};
     if (filterType !== "all") f.type = filterType;
     if (startDate) f.startDate = startDate;
     if (endDate) f.endDate = endDate;
     return f;
   }, [filterType, startDate, endDate]);
 
-  const { transactions, loading, add, update, remove } =
-    useTransactions(filters);
-  const {
-    categories,
-    incomeCategories,
-    expenseCategories,
-    loading: categoriesLoading,
-  } = useCategories();
+  const { transactions, loading, add, update, remove } = useTransactions(filters);
+  const { categories, incomeCategories, expenseCategories } = useCategories();
+
+  // Templates
+  const [templates, setTemplates] = useState<ExpenseTemplate[]>([]);
+  const loadTemplates = useCallback(async () => {
+    if (!user) return;
+    const data = await getExpenseTemplates(user.uid);
+    setTemplates(data);
+  }, [user]);
+  useEffect(() => { loadTemplates(); }, [loadTemplates]);
+
+  // 取引先の予測変換用：過去の取引先名リスト
+  const clientSuggestions = useMemo(() => {
+    const names = new Set<string>();
+    transactions.forEach((t) => {
+      if (t.client) names.add(t.client);
+    });
+    return Array.from(names).sort();
+  }, [transactions]);
 
   // Dialog state
   const [formDialogOpen, setFormDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [editingTransaction, setEditingTransaction] =
-    useState<Transaction | null>(null);
-  const [deletingTransaction, setDeletingTransaction] =
-    useState<Transaction | null>(null);
-  const [formData, setFormData] = useState<FormData>(initialFormData);
+  const [formType, setFormType] = useState<TransactionType>("expense");
+  const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
+  const [deletingTransaction, setDeletingTransaction] = useState<Transaction | null>(null);
+  const [formData, setFormData] = useState<FormData>(emptyForm);
+  const [saveAsTemplate, setSaveAsTemplate] = useState(false);
+  const [templateName, setTemplateName] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  // Filtered categories based on selected type in form
-  const filteredCategories =
-    formData.type === "income" ? incomeCategories : expenseCategories;
+  const filteredCategories = formType === "income" ? incomeCategories : expenseCategories;
 
-  // Open dialog for new transaction
-  const handleNewTransaction = () => {
+  // カテゴリ名を取得するヘルパー
+  const getCategoryName = (id: string) =>
+    categories.find((c) => c.id === id)?.name ?? "";
+
+  // 売上登録
+  const openIncomeForm = () => {
     setEditingTransaction(null);
-    setFormData(initialFormData);
+    setFormType("income");
+    setFormData(emptyForm);
+    setSaveAsTemplate(false);
     setFormDialogOpen(true);
   };
 
-  // Open dialog for editing
+  // 経費登録
+  const openExpenseForm = () => {
+    setEditingTransaction(null);
+    setFormType("expense");
+    setFormData(emptyForm);
+    setSaveAsTemplate(false);
+    setFormDialogOpen(true);
+  };
+
+  // テンプレートから経費を即登録
+  const registerFromTemplate = async (tpl: ExpenseTemplate) => {
+    if (!user) return;
+    try {
+      await add({
+        type: "expense",
+        date: new Date().toISOString().split("T")[0],
+        categoryId: tpl.categoryId,
+        categoryName: tpl.categoryName,
+        amount: tpl.amount,
+        description: tpl.description,
+        client: tpl.client || undefined,
+      });
+      toast.success(`「${tpl.name}」を登録しました`);
+    } catch {
+      toast.error("登録に失敗しました");
+    }
+  };
+
+  // テンプレート削除
+  const handleDeleteTemplate = async (tpl: ExpenseTemplate) => {
+    if (!user) return;
+    try {
+      await deleteExpenseTemplate(user.uid, tpl.id);
+      await loadTemplates();
+      toast.success("テンプレートを削除しました");
+    } catch {
+      toast.error("削除に失敗しました");
+    }
+  };
+
+  // 編集
   const handleEdit = (transaction: Transaction) => {
     setEditingTransaction(transaction);
+    setFormType(transaction.type);
     setFormData({
-      type: transaction.type,
       date: transaction.date,
       categoryId: transaction.categoryId,
       amount: String(transaction.amount),
       description: transaction.description,
       client: transaction.client ?? "",
     });
+    setSaveAsTemplate(false);
     setFormDialogOpen(true);
   };
 
-  // Open delete confirmation
+  // 削除確認
   const handleDeleteClick = (transaction: Transaction) => {
     setDeletingTransaction(transaction);
     setDeleteDialogOpen(true);
   };
 
-  // Submit form (add or update)
+  // 登録/更新
   const handleSubmit = async () => {
     if (!formData.categoryId) {
       toast.error("カテゴリを選択してください");
@@ -150,7 +209,7 @@ export default function TransactionsPage() {
     setSubmitting(true);
     try {
       const payload = {
-        type: formData.type,
+        type: formType,
         date: formData.date,
         categoryId: formData.categoryId,
         categoryName: category.name,
@@ -164,20 +223,35 @@ export default function TransactionsPage() {
         toast.success("取引を更新しました");
       } else {
         await add(payload as Omit<Transaction, "id" | "createdAt" | "updatedAt">);
-        toast.success("取引を登録しました");
+        toast.success(formType === "income" ? "売上を登録しました" : "経費を登録しました");
+      }
+
+      // テンプレート保存
+      if (saveAsTemplate && !editingTransaction && formType === "expense" && user) {
+        const tplName = templateName.trim() || formData.description || category.name;
+        await addExpenseTemplate(user.uid, {
+          name: tplName,
+          amount: Number(formData.amount),
+          categoryId: formData.categoryId,
+          categoryName: category.name,
+          description: formData.description,
+          client: formData.client,
+        });
+        await loadTemplates();
+        toast.success(`テンプレート「${tplName}」を保存しました`);
       }
 
       setFormDialogOpen(false);
-      setFormData(initialFormData);
+      setFormData(emptyForm);
       setEditingTransaction(null);
     } catch {
-      toast.error("エラーが発生しました。もう一度お試しください。");
+      toast.error("エラーが発生しました");
     } finally {
       setSubmitting(false);
     }
   };
 
-  // Confirm delete
+  // 削除実行
   const handleDeleteConfirm = async () => {
     if (!deletingTransaction) return;
     setSubmitting(true);
@@ -187,15 +261,10 @@ export default function TransactionsPage() {
       setDeleteDialogOpen(false);
       setDeletingTransaction(null);
     } catch {
-      toast.error("削除に失敗しました。もう一度お試しください。");
+      toast.error("削除に失敗しました");
     } finally {
       setSubmitting(false);
     }
-  };
-
-  // Handle type change in form - reset categoryId when type changes
-  const handleFormTypeChange = (type: TransactionType) => {
-    setFormData((prev) => ({ ...prev, type, categoryId: "" }));
   };
 
   if (!user) return null;
@@ -205,11 +274,57 @@ export default function TransactionsPage() {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-bold">取引記録</h1>
-        <Button onClick={handleNewTransaction}>
-          <Plus className="mr-1.5 h-4 w-4" />
-          新規登録
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={openIncomeForm} className="bg-blue-600 hover:bg-blue-700">
+            <TrendingUp className="mr-1.5 h-4 w-4" />
+            売上登録
+          </Button>
+          <Button onClick={openExpenseForm} variant="destructive">
+            <TrendingDown className="mr-1.5 h-4 w-4" />
+            経費登録
+          </Button>
+        </div>
       </div>
+
+      {/* 定期支出テンプレート */}
+      {templates.length > 0 && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Repeat className="h-4 w-4" />
+              定期支出（ワンクリック登録）
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-2">
+              {templates.map((tpl) => (
+                <div key={tpl.id} className="flex items-center gap-1">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => registerFromTemplate(tpl)}
+                    className="gap-1.5"
+                  >
+                    <Zap className="h-3.5 w-3.5" />
+                    {tpl.name}
+                    <span className="text-muted-foreground">
+                      ¥{tpl.amount.toLocaleString()}
+                    </span>
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 w-7 p-0"
+                    onClick={() => handleDeleteTemplate(tpl)}
+                  >
+                    <Trash2 className="h-3 w-3 text-muted-foreground" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Filters */}
       <Card>
@@ -217,19 +332,18 @@ export default function TransactionsPage() {
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
             <div className="space-y-2">
               <Label>種別</Label>
-              <Select
-                value={filterType}
-                onValueChange={(value) => setFilterType(value as FilterType)}
-              >
-                <SelectTrigger className="w-[140px]">
-                  <SelectValue placeholder="全て" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all" label="全て">全て</SelectItem>
-                  <SelectItem value="income" label="売上">売上</SelectItem>
-                  <SelectItem value="expense" label="経費">経費</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="flex gap-1">
+                {(["all", "income", "expense"] as const).map((v) => (
+                  <Button
+                    key={v}
+                    variant={filterType === v ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setFilterType(v)}
+                  >
+                    {v === "all" ? "全て" : v === "income" ? "売上" : "経費"}
+                  </Button>
+                ))}
+              </div>
             </div>
             <div className="space-y-2">
               <Label>開始日</Label>
@@ -259,7 +373,7 @@ export default function TransactionsPage() {
                   setEndDate("");
                 }}
               >
-                フィルターをリセット
+                リセット
               </Button>
             )}
           </div>
@@ -278,7 +392,7 @@ export default function TransactionsPage() {
             </div>
           ) : transactions.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
-              取引データがありません。「新規登録」ボタンから取引を追加してください。
+              取引データがありません
             </div>
           ) : (
             <Table>
@@ -288,53 +402,35 @@ export default function TransactionsPage() {
                   <TableHead>種別</TableHead>
                   <TableHead>カテゴリ</TableHead>
                   <TableHead>説明</TableHead>
+                  <TableHead>取引先</TableHead>
                   <TableHead className="text-right">金額</TableHead>
                   <TableHead className="text-right">操作</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {transactions.map((transaction) => (
-                  <TableRow key={transaction.id}>
-                    <TableCell>{transaction.date}</TableCell>
+                {transactions.map((t) => (
+                  <TableRow key={t.id}>
+                    <TableCell>{t.date}</TableCell>
                     <TableCell>
-                      {transaction.type === "income" ? (
-                        <Badge variant="default">売上</Badge>
-                      ) : (
-                        <Badge variant="destructive">経費</Badge>
-                      )}
+                      <Badge variant={t.type === "income" ? "default" : "destructive"}>
+                        {t.type === "income" ? "売上" : "経費"}
+                      </Badge>
                     </TableCell>
-                    <TableCell>{transaction.categoryName}</TableCell>
-                    <TableCell className="max-w-[200px] truncate">
-                      {transaction.description}
-                    </TableCell>
+                    <TableCell>{t.categoryName}</TableCell>
+                    <TableCell className="max-w-[200px] truncate">{t.description}</TableCell>
+                    <TableCell className="text-muted-foreground">{t.client || "-"}</TableCell>
                     <TableCell className="text-right font-medium">
-                      {transaction.type === "income" ? (
-                        <span className="text-blue-600 dark:text-blue-400">
-                          ¥{transaction.amount.toLocaleString()}
-                        </span>
-                      ) : (
-                        <span className="text-red-600 dark:text-red-400">
-                          -¥{transaction.amount.toLocaleString()}
-                        </span>
-                      )}
+                      <span className={t.type === "income" ? "text-blue-600" : "text-red-600"}>
+                        {t.type === "expense" ? "-" : ""}¥{t.amount.toLocaleString()}
+                      </span>
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon-sm"
-                          onClick={() => handleEdit(transaction)}
-                        >
-                          <Pencil className="h-4 w-4" />
-                          <span className="sr-only">編集</span>
+                        <Button variant="ghost" size="sm" onClick={() => handleEdit(t)}>
+                          <Pencil className="h-3.5 w-3.5" />
                         </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon-sm"
-                          onClick={() => handleDeleteClick(transaction)}
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                          <span className="sr-only">削除</span>
+                        <Button variant="ghost" size="sm" onClick={() => handleDeleteClick(t)}>
+                          <Trash2 className="h-3.5 w-3.5 text-destructive" />
                         </Button>
                       </div>
                     </TableCell>
@@ -346,6 +442,13 @@ export default function TransactionsPage() {
         </CardContent>
       </Card>
 
+      {/* datalist for client autocomplete */}
+      <datalist id="client-suggestions">
+        {clientSuggestions.map((name) => (
+          <option key={name} value={name} />
+        ))}
+      </datalist>
+
       {/* Add/Edit Dialog */}
       <Dialog
         open={formDialogOpen}
@@ -353,36 +456,21 @@ export default function TransactionsPage() {
           setFormDialogOpen(open);
           if (!open) {
             setEditingTransaction(null);
-            setFormData(initialFormData);
+            setFormData(emptyForm);
           }
         }}
       >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>
-              {editingTransaction ? "取引を編集" : "新規取引登録"}
+              {editingTransaction
+                ? "取引を編集"
+                : formType === "income"
+                  ? "売上登録"
+                  : "経費登録"}
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 py-4">
-            {/* 種別 */}
-            <div className="space-y-2">
-              <Label>種別</Label>
-              <Select
-                value={formData.type}
-                onValueChange={(value) =>
-                  handleFormTypeChange(value as TransactionType)
-                }
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="income" label="売上">売上</SelectItem>
-                  <SelectItem value="expense" label="経費">経費</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
+          <div className="space-y-4 py-2">
             {/* 日付 */}
             <div className="space-y-2">
               <Label>日付</Label>
@@ -395,29 +483,29 @@ export default function TransactionsPage() {
               />
             </div>
 
-            {/* カテゴリ */}
+            {/* カテゴリ - ボタン形式 */}
             <div className="space-y-2">
               <Label>カテゴリ</Label>
-              <Select
-                value={formData.categoryId}
-                onValueChange={(value) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    categoryId: value as string,
-                  }))
-                }
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="カテゴリを選択" />
-                </SelectTrigger>
-                <SelectContent>
-                  {filteredCategories.map((category) => (
-                    <SelectItem key={category.id} value={category.id} label={category.name}>
-                      {category.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="flex flex-wrap gap-1.5">
+                {filteredCategories.map((cat) => (
+                  <Button
+                    key={cat.id}
+                    type="button"
+                    variant={formData.categoryId === cat.id ? "default" : "outline"}
+                    size="sm"
+                    onClick={() =>
+                      setFormData((prev) => ({ ...prev, categoryId: cat.id }))
+                    }
+                  >
+                    {cat.name}
+                  </Button>
+                ))}
+              </div>
+              {formData.categoryId && (
+                <p className="text-xs text-muted-foreground">
+                  選択中: {getCategoryName(formData.categoryId)}
+                </p>
+              )}
             </div>
 
             {/* 金額 */}
@@ -441,34 +529,55 @@ export default function TransactionsPage() {
                 placeholder="取引の説明を入力"
                 value={formData.description}
                 onChange={(e) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    description: e.target.value,
-                  }))
+                  setFormData((prev) => ({ ...prev, description: e.target.value }))
                 }
               />
             </div>
 
-            {/* 取引先名 */}
+            {/* 取引先名（予測変換付き） */}
             <div className="space-y-2">
-              <Label>取引先名（任意）</Label>
+              <Label>取引先名</Label>
               <Input
-                placeholder="取引先名を入力"
+                list="client-suggestions"
+                placeholder="取引先名を入力（過去の入力から予測）"
                 value={formData.client}
                 onChange={(e) =>
                   setFormData((prev) => ({ ...prev, client: e.target.value }))
                 }
               />
             </div>
+
+            {/* テンプレート保存（経費の新規登録時のみ） */}
+            {formType === "expense" && !editingTransaction && (
+              <div className="rounded-md border p-3 space-y-2">
+                <label className="flex items-center gap-2 text-sm cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={saveAsTemplate}
+                    onChange={(e) => setSaveAsTemplate(e.target.checked)}
+                    className="rounded"
+                  />
+                  <Save className="h-3.5 w-3.5" />
+                  定期支出として保存（次回からワンクリック登録）
+                </label>
+                {saveAsTemplate && (
+                  <Input
+                    placeholder="テンプレート名（例: Adobe CC, AWS）"
+                    value={templateName}
+                    onChange={(e) => setTemplateName(e.target.value)}
+                  />
+                )}
+              </div>
+            )}
           </div>
           <DialogFooter>
-            <DialogClose
-              render={
-                <Button variant="outline" disabled={submitting}>
-                  キャンセル
-                </Button>
-              }
-            />
+            <Button
+              variant="outline"
+              onClick={() => setFormDialogOpen(false)}
+              disabled={submitting}
+            >
+              キャンセル
+            </Button>
             <Button onClick={handleSubmit} disabled={submitting}>
               {submitting
                 ? "処理中..."
@@ -494,7 +603,7 @@ export default function TransactionsPage() {
           </DialogHeader>
           <div className="py-4">
             <p className="text-sm text-muted-foreground">
-              この取引を削除してもよろしいですか？この操作は取り消せません。
+              この取引を削除してもよろしいですか？
             </p>
             {deletingTransaction && (
               <div className="mt-3 rounded-md bg-muted p-3 text-sm space-y-1">
@@ -510,23 +619,17 @@ export default function TransactionsPage() {
                   <span className="font-medium">金額:</span> ¥
                   {deletingTransaction.amount.toLocaleString()}
                 </p>
-                {deletingTransaction.description && (
-                  <p>
-                    <span className="font-medium">説明:</span>{" "}
-                    {deletingTransaction.description}
-                  </p>
-                )}
               </div>
             )}
           </div>
           <DialogFooter>
-            <DialogClose
-              render={
-                <Button variant="outline" disabled={submitting}>
-                  キャンセル
-                </Button>
-              }
-            />
+            <Button
+              variant="outline"
+              onClick={() => setDeleteDialogOpen(false)}
+              disabled={submitting}
+            >
+              キャンセル
+            </Button>
             <Button
               variant="destructive"
               onClick={handleDeleteConfirm}

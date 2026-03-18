@@ -71,6 +71,17 @@ export interface Invoice {
   updatedAt: Timestamp;
 }
 
+export interface ExpenseTemplate {
+  id: string;
+  name: string; // テンプレート名（例: "Adobe CC", "AWS"）
+  amount: number;
+  categoryId: string;
+  categoryName: string;
+  description: string;
+  client: string;
+  createdAt: Timestamp;
+}
+
 export const DEFAULT_EXPENSE_CATEGORIES = [
   "旅費交通費",
   "通信費",
