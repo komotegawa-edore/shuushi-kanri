@@ -29,22 +29,41 @@ import {
   ChevronDown,
   ChevronUp,
   X,
+  Train,
+  Smartphone,
+  PenLine,
+  UtensilsCrossed,
+  Home,
+  Lightbulb,
+  Megaphone,
+  Handshake,
+  Package,
+  BookOpen,
+  Monitor,
+  Landmark,
+  Folder,
+  type LucideIcon,
 } from "lucide-react";
 
-const CATEGORY_EMOJI: Record<string, string> = {
-  旅費交通費: "🚃",
-  通信費: "📱",
-  消耗品費: "🖊️",
-  接待交際費: "🍽️",
-  地代家賃: "🏠",
-  水道光熱費: "💡",
-  広告宣伝費: "📢",
-  外注費: "🤝",
-  雑費: "📦",
-  新聞図書費: "📚",
-  減価償却費: "🖥️",
-  租税公課: "🏛️",
+const CATEGORY_ICONS: Record<string, LucideIcon> = {
+  旅費交通費: Train,
+  通信費: Smartphone,
+  消耗品費: PenLine,
+  接待交際費: UtensilsCrossed,
+  地代家賃: Home,
+  水道光熱費: Lightbulb,
+  広告宣伝費: Megaphone,
+  外注費: Handshake,
+  雑費: Package,
+  新聞図書費: BookOpen,
+  減価償却費: Monitor,
+  租税公課: Landmark,
 };
+
+function CategoryIcon({ name, className }: { name: string; className?: string }) {
+  const Icon = CATEGORY_ICONS[name] || Folder;
+  return <Icon className={className} />;
+}
 
 interface QuickAddState {
   categoryId: string;
@@ -343,13 +362,12 @@ export default function ExpensesPage() {
               <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
                 {expenseCategories.map((cat) => {
                   const isSelected = quickAdd?.categoryId === cat.id;
-                  const emoji = CATEGORY_EMOJI[cat.name] || "📋";
                   return (
                     <button
                       key={cat.id}
                       onClick={() => handleCategoryTap(cat.id, cat.name)}
                       className={`
-                        flex flex-col items-center justify-center gap-1 rounded-xl border-2 p-3
+                        flex flex-col items-center justify-center gap-1.5 rounded-xl border-2 p-3
                         transition-all duration-200 min-h-[72px] active:scale-95
                         ${
                           isSelected
@@ -358,13 +376,14 @@ export default function ExpensesPage() {
                         }
                       `}
                     >
-                      <span
-                        className={`text-xl leading-none transition-transform duration-200 ${
-                          isSelected ? "scale-110" : ""
+                      <CategoryIcon
+                        name={cat.name}
+                        className={`h-5 w-5 transition-transform duration-200 ${
+                          isSelected
+                            ? "scale-110 text-orange-500"
+                            : "text-muted-foreground"
                         }`}
-                      >
-                        {emoji}
-                      </span>
+                      />
                       <span
                         className={`text-[11px] font-medium leading-tight text-center ${
                           isSelected
@@ -389,9 +408,10 @@ export default function ExpensesPage() {
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <span className="text-lg">
-                        {CATEGORY_EMOJI[quickAdd.categoryName] || "📋"}
-                      </span>
+                      <CategoryIcon
+                        name={quickAdd.categoryName}
+                        className="h-5 w-5 text-orange-500"
+                      />
                       <span className="font-medium text-orange-700 dark:text-orange-300">
                         {quickAdd.categoryName}
                       </span>
@@ -672,9 +692,10 @@ export default function ExpensesPage() {
                   >
                     <div className="flex items-center justify-between text-sm">
                       <div className="flex items-center gap-2 min-w-0">
-                        <span className="text-base leading-none">
-                          {CATEGORY_EMOJI[cat.name] || "📋"}
-                        </span>
+                        <CategoryIcon
+                          name={cat.name}
+                          className="h-4 w-4 text-orange-500 shrink-0"
+                        />
                         <span className="font-medium truncate">{cat.name}</span>
                         <span className="text-muted-foreground text-xs shrink-0">
                           {cat.count}件
@@ -770,9 +791,10 @@ export default function ExpensesPage() {
                   }}
                 >
                   <div className="h-9 w-9 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center shrink-0">
-                    <span className="text-sm">
-                      {CATEGORY_EMOJI[t.categoryName] || "📋"}
-                    </span>
+                    <CategoryIcon
+                      name={t.categoryName}
+                      className="h-4 w-4 text-orange-500"
+                    />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5">
