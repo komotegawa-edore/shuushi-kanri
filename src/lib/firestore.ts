@@ -202,3 +202,99 @@ export async function addExpenseTemplate(userId: string, data: Omit<ExpenseTempl
 export async function deleteExpenseTemplate(userId: string, id: string) {
   await deleteDoc(doc(templatesCol(userId), id));
 }
+
+// ---- User Stats (Gamification) ----
+import {
+  UserStats,
+  EXP_PER_RECORD,
+  EXP_STREAK_BONUS,
+  getLevelFromExp,
+  ACHIEVEMENTS,
+} from "@/types";
+
+function statsRef(userId: string) {
+  return doc(db, "users", userId, "meta", "stats");
+}
+
+export async function getUserStats(userId: string): Promise<UserStats> {
+  const snap = await getDoc(statsRef(userId));
+  if (snap.exists()) return snap.data() as UserStats;
+  const defaultStats: UserStats = {
+    totalTransactions: 0,
+    totalIncome: 0,
+    totalExpense: 0,
+    currentStreak: 0,
+    longestStreak: 0,
+    lastRecordDate: "",
+    level: 1,
+    exp: 0,
+    achievements: [],
+    monthlyGoal: 20,
+  };
+  await setDoc(statsRef(userId), defaultStats);
+  return defaultStats;
+}
+
+export async function recordTransaction(
+  userId: string,
+  type: "income" | "expense",
+  amount: number,
+  today: string
+): Promise<{ stats: UserStats; newAchievements: string[]; leveledUp: boolean }> {
+  const stats = await getUserStats(userId);
+  const prevLevel = stats.level;
+
+  // 取引数
+  stats.totalTransactions += 1;
+  if (type === "income") stats.totalIncome += amount;
+  else stats.totalExpense += amount;
+
+  // ストリーク計算
+  if (stats.lastRecordDate === today) {
+    // 同日は変更なし
+  } else {
+    const lastDate = stats.lastRecordDate ? new Date(stats.lastRecordDate) : null;
+    const todayDate = new Date(today);
+    if (lastDate) {
+      const diffMs = todayDate.getTime() - lastDate.getTime();
+      const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
+      if (diffDays === 1) {
+        stats.currentStreak += 1;
+      } else if (diffDays > 1) {
+        stats.currentStreak = 1;
+      }
+    } else {
+      stats.currentStreak = 1;
+    }
+    stats.lastRecordDate = today;
+  }
+  if (stats.currentStreak > stats.longestStreak) {
+    stats.longestStreak = stats.currentStreak;
+  }
+
+  // 経験値
+  const streakBonus = Math.min(stats.currentStreak, 10) * EXP_STREAK_BONUS;
+  stats.exp += EXP_PER_RECORD + streakBonus;
+  stats.level = getLevelFromExp(stats.exp);
+  const leveledUp = stats.level > prevLevel;
+
+  // 月間件数を計算（実績チェック用）
+  const yearMonth = today.substring(0, 7);
+  const allTx = await getTransactions(userId, {
+    startDate: `${yearMonth}-01`,
+    endDate: `${yearMonth}-31`,
+  });
+  const monthlyCount = allTx.length;
+
+  // 実績チェック
+  const newAchievements: string[] = [];
+  for (const ach of ACHIEVEMENTS) {
+    if (!stats.achievements.includes(ach.id) && ach.condition(stats, monthlyCount)) {
+      stats.achievements.push(ach.id);
+      newAchievements.push(ach.id);
+    }
+  }
+
+  await setDoc(statsRef(userId), stats);
+  return { stats, newAchievements, leveledUp };
+}

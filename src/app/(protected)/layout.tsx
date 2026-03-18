@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import {
   LayoutDashboard,
   ArrowLeftRight,
+  Receipt,
   BarChart3,
   FileText,
   Users,
@@ -20,7 +21,8 @@ import { useState } from "react";
 
 const navItems = [
   { href: "/dashboard", label: "ダッシュボード", icon: LayoutDashboard },
-  { href: "/transactions", label: "取引記録", icon: ArrowLeftRight },
+  { href: "/expenses", label: "経費記録", icon: Receipt },
+  { href: "/transactions", label: "取引一覧", icon: ArrowLeftRight },
   { href: "/reports", label: "レポート", icon: BarChart3 },
   { href: "/invoices", label: "請求書", icon: FileText },
   { href: "/clients", label: "取引先", icon: Users },

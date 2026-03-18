@@ -42,6 +42,7 @@ import {
   Save,
 } from "lucide-react";
 import { toast } from "sonner";
+import SuccessAnimation from "@/components/SuccessAnimation";
 
 type TransactionType = "income" | "expense";
 type FilterType = "all" | TransactionType;
@@ -108,6 +109,12 @@ export default function TransactionsPage() {
   const [saveAsTemplate, setSaveAsTemplate] = useState(false);
   const [templateName, setTemplateName] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [successAnim, setSuccessAnim] = useState<{
+    show: boolean;
+    amount: number;
+    message: string;
+    key: number;
+  }>({ show: false, amount: 0, message: "", key: 0 });
 
   const filteredCategories = formType === "income" ? incomeCategories : expenseCategories;
 
@@ -146,7 +153,12 @@ export default function TransactionsPage() {
         description: tpl.description,
         client: tpl.client || undefined,
       });
-      toast.success(`「${tpl.name}」を登録しました`);
+      setSuccessAnim((prev) => ({
+        show: true,
+        amount: tpl.amount,
+        message: `「${tpl.name}」を記録しました`,
+        key: prev.key + 1,
+      }));
     } catch {
       toast.error("登録に失敗しました");
     }
@@ -223,7 +235,12 @@ export default function TransactionsPage() {
         toast.success("取引を更新しました");
       } else {
         await add(payload as Omit<Transaction, "id" | "createdAt" | "updatedAt">);
-        toast.success(formType === "income" ? "売上を登録しました" : "経費を登録しました");
+        setSuccessAnim((prev) => ({
+          show: true,
+          amount: Number(formData.amount),
+          message: formType === "income" ? "売上を記録しました" : "経費を記録しました",
+          key: prev.key + 1,
+        }));
       }
 
       // テンプレート保存
@@ -271,6 +288,15 @@ export default function TransactionsPage() {
 
   return (
     <div className="space-y-6">
+      {/* Success animation */}
+      <SuccessAnimation
+        key={successAnim.key}
+        show={successAnim.show}
+        amount={successAnim.amount}
+        message={successAnim.message}
+        onComplete={() => setSuccessAnim((prev) => ({ ...prev, show: false }))}
+      />
+
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-bold">取引記録</h1>
