@@ -313,7 +313,7 @@ export default function ExpensesPage() {
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold flex items-center gap-2">
-          <Receipt className="h-6 w-6 text-orange-500" />
+          <Receipt className="h-6 w-6 text-blue-500" />
           経費記録
         </h1>
         <p className="text-muted-foreground text-sm mt-1">
@@ -326,36 +326,36 @@ export default function ExpensesPage() {
         className="rounded-2xl p-5 relative overflow-hidden"
         style={{
           background:
-            "linear-gradient(135deg, #fff7ed 0%, #fffbeb 50%, #fef3c7 100%)",
+            "linear-gradient(135deg, #eff6ff 0%, #f0fdf4 50%, #ecfdf5 100%)",
         }}
       >
         <div className="relative z-10">
-          <p className="text-sm font-medium text-orange-700/80">
+          <p className="text-sm font-medium text-blue-700/80">
             {monthLabel}の経費
           </p>
-          <p className="text-3xl font-bold text-orange-600 mt-1 tabular-nums tracking-tight">
+          <p className="text-3xl font-bold text-blue-600 mt-1 tabular-nums tracking-tight">
             ¥{isLoading ? "---" : monthlyTotal.toLocaleString()}
           </p>
-          <p className="text-xs text-orange-600/60 mt-1">
+          <p className="text-xs text-blue-600/60 mt-1">
             {transactions.length}件
           </p>
         </div>
-        <div className="absolute -right-4 -bottom-4 w-24 h-24 rounded-full bg-orange-200/40" />
-        <div className="absolute -right-8 -top-8 w-20 h-20 rounded-full bg-amber-200/30" />
+        <div className="absolute -right-4 -bottom-4 w-24 h-24 rounded-full bg-blue-200/40" />
+        <div className="absolute -right-8 -top-8 w-20 h-20 rounded-full bg-emerald-200/30" />
       </div>
 
       {/* Quick-Add Grid */}
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
-            <Zap className="h-4 w-4 text-amber-500" />
+            <Zap className="h-4 w-4 text-blue-500" />
             かんたん経費入力
           </CardTitle>
         </CardHeader>
         <CardContent>
           {categoriesLoading ? (
             <div className="flex items-center justify-center py-8">
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-orange-500" />
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500" />
             </div>
           ) : (
             <>
@@ -371,7 +371,7 @@ export default function ExpensesPage() {
                         transition-all duration-200 min-h-[72px] active:scale-95
                         ${
                           isSelected
-                            ? "border-orange-400 bg-orange-50 dark:bg-orange-950/30 shadow-lg shadow-orange-200/50 scale-[1.03]"
+                            ? "border-blue-400 bg-blue-50 dark:bg-blue-950/30 shadow-lg shadow-blue-200/50 scale-[1.03]"
                             : "border-transparent bg-muted/40 hover:bg-muted hover:shadow-sm"
                         }
                       `}
@@ -380,14 +380,14 @@ export default function ExpensesPage() {
                         name={cat.name}
                         className={`h-5 w-5 transition-transform duration-200 ${
                           isSelected
-                            ? "scale-110 text-orange-500"
+                            ? "scale-110 text-blue-500"
                             : "text-muted-foreground"
                         }`}
                       />
                       <span
                         className={`text-[11px] font-medium leading-tight text-center ${
                           isSelected
-                            ? "text-orange-700 dark:text-orange-300"
+                            ? "text-blue-700 dark:text-blue-300"
                             : "text-foreground/80"
                         }`}
                       >
@@ -401,7 +401,7 @@ export default function ExpensesPage() {
               {/* Inline input */}
               {quickAdd && (
                 <div
-                  className="mt-4 rounded-xl border border-orange-200 dark:border-orange-800/40 bg-gradient-to-b from-orange-50/80 to-white dark:from-orange-950/20 dark:to-background p-4 space-y-3"
+                  className="mt-4 rounded-xl border border-blue-200 dark:border-blue-800/40 bg-gradient-to-b from-blue-50/80 to-white dark:from-blue-950/20 dark:to-background p-4 space-y-3"
                   style={{
                     animation: "slideDown 0.25s cubic-bezier(0.34, 1.56, 0.64, 1)",
                   }}
@@ -410,9 +410,9 @@ export default function ExpensesPage() {
                     <div className="flex items-center gap-2">
                       <CategoryIcon
                         name={quickAdd.categoryName}
-                        className="h-5 w-5 text-orange-500"
+                        className="h-5 w-5 text-blue-500"
                       />
-                      <span className="font-medium text-orange-700 dark:text-orange-300">
+                      <span className="font-medium text-blue-700 dark:text-blue-300">
                         {quickAdd.categoryName}
                       </span>
                     </div>
@@ -425,7 +425,7 @@ export default function ExpensesPage() {
                   </div>
 
                   <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-orange-500 font-bold text-lg">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-blue-500 font-bold text-lg">
                       ¥
                     </span>
                     <Input
@@ -439,7 +439,7 @@ export default function ExpensesPage() {
                           prev ? { ...prev, amount: e.target.value } : null
                         )
                       }
-                      className="pl-9 text-xl font-bold h-12 border-orange-200 dark:border-orange-800/40 focus-visible:ring-orange-400"
+                      className="pl-9 text-xl font-bold h-12 border-blue-200 dark:border-blue-800/40 focus-visible:ring-blue-400"
                       autoFocus
                       onKeyDown={(e) => {
                         if (e.key === "Enter") handleQuickSave();
@@ -455,7 +455,7 @@ export default function ExpensesPage() {
                         prev ? { ...prev, description: e.target.value } : null
                       )
                     }
-                    className="border-orange-200 dark:border-orange-800/40 focus-visible:ring-orange-400"
+                    className="border-blue-200 dark:border-blue-800/40 focus-visible:ring-blue-400"
                     onKeyDown={(e) => {
                       if (e.key === "Enter") handleQuickSave();
                     }}
@@ -464,7 +464,7 @@ export default function ExpensesPage() {
                   <Button
                     onClick={handleQuickSave}
                     disabled={quickAddSubmitting || !quickAdd.amount}
-                    className="w-full bg-orange-500 hover:bg-orange-600 text-white h-11 text-base font-semibold active:scale-[0.98] transition-all"
+                    className="w-full bg-blue-500 hover:bg-blue-600 text-white h-11 text-base font-semibold active:scale-[0.98] transition-all"
                   >
                     {quickAddSubmitting ? (
                       <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
@@ -488,7 +488,7 @@ export default function ExpensesPage() {
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <CardTitle className="text-base flex items-center gap-2">
-                <Repeat className="h-4 w-4 text-amber-500" />
+                <Repeat className="h-4 w-4 text-blue-500" />
                 定期支出
               </CardTitle>
               <Button
@@ -505,12 +505,12 @@ export default function ExpensesPage() {
           <CardContent>
             {showTemplateForm && (
               <div
-                className="mb-4 rounded-lg border border-dashed border-orange-300 dark:border-orange-700 p-4 space-y-3 bg-orange-50/30 dark:bg-orange-950/10"
+                className="mb-4 rounded-lg border border-dashed border-blue-300 dark:border-blue-700 p-4 space-y-3 bg-blue-50/30 dark:bg-blue-950/10"
                 style={{
                   animation: "slideDown 0.2s ease-out",
                 }}
               >
-                <p className="text-sm font-medium text-orange-700 dark:text-orange-300">
+                <p className="text-sm font-medium text-blue-700 dark:text-blue-300">
                   新しいテンプレート
                 </p>
                 <Input
@@ -542,7 +542,7 @@ export default function ExpensesPage() {
                       }
                       className={
                         templateForm.categoryId === cat.id
-                          ? "bg-orange-500 hover:bg-orange-600"
+                          ? "bg-blue-500 hover:bg-blue-600"
                           : ""
                       }
                     >
@@ -602,7 +602,7 @@ export default function ExpensesPage() {
                     size="sm"
                     onClick={handleTemplateAdd}
                     disabled={templateSubmitting}
-                    className="bg-orange-500 hover:bg-orange-600 text-white"
+                    className="bg-blue-500 hover:bg-blue-600 text-white"
                   >
                     {templateSubmitting ? "保存中..." : "保存"}
                   </Button>
@@ -625,7 +625,7 @@ export default function ExpensesPage() {
                         {tpl.categoryName}
                       </Badge>
                     </div>
-                    <p className="text-sm font-bold text-orange-600 dark:text-orange-400 mt-0.5">
+                    <p className="text-sm font-bold text-blue-600 dark:text-blue-400 mt-0.5">
                       ¥{tpl.amount.toLocaleString()}
                     </p>
                   </div>
@@ -633,7 +633,7 @@ export default function ExpensesPage() {
                     <Button
                       size="sm"
                       onClick={() => handleTemplateRegister(tpl)}
-                      className="bg-orange-500 hover:bg-orange-600 text-white h-8 px-3 text-xs active:scale-95 transition-all"
+                      className="bg-blue-500 hover:bg-blue-600 text-white h-8 px-3 text-xs active:scale-95 transition-all"
                     >
                       <Zap className="h-3 w-3 mr-1" />
                       記録
@@ -658,14 +658,14 @@ export default function ExpensesPage() {
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
-            <Target className="h-4 w-4 text-amber-500" />
+            <Target className="h-4 w-4 text-blue-500" />
             {monthLabel} カテゴリ別
           </CardTitle>
         </CardHeader>
         <CardContent>
           {isLoading ? (
             <div className="flex items-center justify-center py-8">
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-orange-500" />
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500" />
             </div>
           ) : categoryBreakdown.length === 0 ? (
             <div className="text-center py-6 text-muted-foreground">
@@ -694,7 +694,7 @@ export default function ExpensesPage() {
                       <div className="flex items-center gap-2 min-w-0">
                         <CategoryIcon
                           name={cat.name}
-                          className="h-4 w-4 text-orange-500 shrink-0"
+                          className="h-4 w-4 text-blue-500 shrink-0"
                         />
                         <span className="font-medium truncate">{cat.name}</span>
                         <span className="text-muted-foreground text-xs shrink-0">
@@ -705,14 +705,14 @@ export default function ExpensesPage() {
                         <span className="text-xs text-muted-foreground">
                           {percentage}%
                         </span>
-                        <span className="font-semibold text-orange-600 dark:text-orange-400 tabular-nums">
+                        <span className="font-semibold text-blue-600 dark:text-blue-400 tabular-nums">
                           ¥{cat.total.toLocaleString()}
                         </span>
                       </div>
                     </div>
-                    <div className="h-1.5 rounded-full bg-orange-100 dark:bg-orange-900/30 overflow-hidden">
+                    <div className="h-1.5 rounded-full bg-blue-100 dark:bg-blue-900/30 overflow-hidden">
                       <div
-                        className="h-full rounded-full bg-gradient-to-r from-orange-400 to-amber-400"
+                        className="h-full rounded-full bg-gradient-to-r from-blue-400 to-emerald-400"
                         style={{
                           width: `${barWidth}%`,
                           transition: "width 0.6s cubic-bezier(0.22, 1, 0.36, 1)",
@@ -725,7 +725,7 @@ export default function ExpensesPage() {
               <div className="pt-2 mt-2 border-t">
                 <div className="flex items-center justify-between text-sm">
                   <span className="font-medium">合計</span>
-                  <span className="font-bold text-lg text-orange-600 dark:text-orange-400 tabular-nums">
+                  <span className="font-bold text-lg text-blue-600 dark:text-blue-400 tabular-nums">
                     ¥{monthlyTotal.toLocaleString()}
                   </span>
                 </div>
@@ -740,7 +740,7 @@ export default function ExpensesPage() {
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <CardTitle className="text-base flex items-center gap-2">
-              <Receipt className="h-4 w-4 text-amber-500" />
+              <Receipt className="h-4 w-4 text-blue-500" />
               最近の経費
             </CardTitle>
             {recentExpenses.length > 5 && (
@@ -768,7 +768,7 @@ export default function ExpensesPage() {
         <CardContent>
           {isLoading ? (
             <div className="flex items-center justify-center py-8">
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-orange-500" />
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500" />
             </div>
           ) : recentExpenses.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
@@ -790,10 +790,10 @@ export default function ExpensesPage() {
                     animation: `fadeSlideIn 0.25s ease-out ${i * 0.03}s both`,
                   }}
                 >
-                  <div className="h-9 w-9 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center shrink-0">
+                  <div className="h-9 w-9 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center shrink-0">
                     <CategoryIcon
                       name={t.categoryName}
-                      className="h-4 w-4 text-orange-500"
+                      className="h-4 w-4 text-blue-500"
                     />
                   </div>
                   <div className="flex-1 min-w-0">
@@ -816,7 +816,7 @@ export default function ExpensesPage() {
                     </p>
                   </div>
                   <div className="flex items-center gap-1.5 shrink-0">
-                    <span className="text-sm font-bold text-orange-600 dark:text-orange-400 tabular-nums">
+                    <span className="text-sm font-bold text-blue-600 dark:text-blue-400 tabular-nums">
                       -¥{t.amount.toLocaleString()}
                     </span>
                     <Button

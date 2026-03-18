@@ -37,14 +37,14 @@ import {
 import type { PieLabelRenderProps } from "recharts";
 
 const COLORS = [
-  "#2563eb",
-  "#16a34a",
-  "#ea580c",
-  "#8b5cf6",
-  "#ec4899",
-  "#14b8a6",
-  "#f59e0b",
+  "#3b82f6",
+  "#10b981",
   "#6366f1",
+  "#0ea5e9",
+  "#8b5cf6",
+  "#14b8a6",
+  "#06b6d4",
+  "#a78bfa",
 ];
 
 const MONTHS = [
@@ -203,8 +203,8 @@ export default function ReportsPage() {
                       ]}
                     />
                     <Legend />
-                    <Bar dataKey="売上" fill="#2563eb" />
-                    <Bar dataKey="経費" fill="#ea580c" />
+                    <Bar dataKey="売上" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="経費" fill="#f43f5e" radius={[4, 4, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>

@@ -140,7 +140,7 @@ export default function DashboardPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <p className="text-muted-foreground">読み込み中...</p>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" />
       </div>
     );
   }
@@ -176,53 +176,61 @@ export default function DashboardPage() {
 
       {/* Monthly Summary Cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card>
+        <Card className="border-l-4 border-l-blue-500">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">売上</CardTitle>
-            <TrendingUp className="size-4 text-muted-foreground" />
+            <div className="h-8 w-8 rounded-full bg-blue-50 flex items-center justify-center">
+              <TrendingUp className="size-4 text-blue-500" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
+            <div className="text-2xl font-bold text-blue-600">
               ¥{summary.income.toLocaleString()}
             </div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border-l-4 border-l-rose-400">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">経費</CardTitle>
-            <Receipt className="size-4 text-muted-foreground" />
+            <div className="h-8 w-8 rounded-full bg-rose-50 flex items-center justify-center">
+              <Receipt className="size-4 text-rose-500" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
+            <div className="text-2xl font-bold text-rose-600">
               ¥{summary.expense.toLocaleString()}
             </div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border-l-4 border-l-emerald-500">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">利益</CardTitle>
-            <Wallet className="size-4 text-muted-foreground" />
+            <div className="h-8 w-8 rounded-full bg-emerald-50 flex items-center justify-center">
+              <Wallet className="size-4 text-emerald-500" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
+            <div className={`text-2xl font-bold ${summary.profit >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
               ¥{summary.profit.toLocaleString()}
             </div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border-l-4 border-l-sky-400">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">前月比</CardTitle>
-            {summary.profitChange >= 0 ? (
-              <TrendingUp className="size-4 text-green-600" />
-            ) : (
-              <TrendingDown className="size-4 text-red-600" />
-            )}
+            <div className={`h-8 w-8 rounded-full flex items-center justify-center ${summary.profitChange >= 0 ? "bg-emerald-50" : "bg-rose-50"}`}>
+              {summary.profitChange >= 0 ? (
+                <TrendingUp className="size-4 text-emerald-500" />
+              ) : (
+                <TrendingDown className="size-4 text-rose-500" />
+              )}
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
+            <div className={`text-2xl font-bold ${summary.profitChange >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
               {summary.profitChange >= 0 ? "+" : ""}
               {summary.profitChange.toFixed(1)}%
             </div>
@@ -233,7 +241,7 @@ export default function DashboardPage() {
       {/* Annual Summary Cards */}
       <div>
         <div className="flex items-center gap-3 mb-3">
-          <Calendar className="size-4" />
+          <Calendar className="size-4 text-blue-500" />
           <h2 className="text-lg font-semibold">年間サマリー</h2>
           <Select
             value={selectedYear}
@@ -254,43 +262,35 @@ export default function DashboardPage() {
           </Select>
         </div>
         <div className="grid gap-4 sm:grid-cols-3">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">年間売上</CardTitle>
+          <div className="rounded-xl p-4 bg-gradient-to-br from-blue-50 to-sky-50 border border-blue-100">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-sm font-medium text-blue-700/80">年間売上</p>
               <TrendingUp className="size-4 text-blue-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-blue-600">
-                ¥{yearSummary.income.toLocaleString()}
-              </div>
-            </CardContent>
-          </Card>
+            </div>
+            <p className="text-2xl font-bold text-blue-600">
+              ¥{yearSummary.income.toLocaleString()}
+            </p>
+          </div>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">年間経費</CardTitle>
-              <Receipt className="size-4 text-orange-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-orange-600">
-                ¥{yearSummary.expense.toLocaleString()}
-              </div>
-            </CardContent>
-          </Card>
+          <div className="rounded-xl p-4 bg-gradient-to-br from-rose-50 to-pink-50 border border-rose-100">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-sm font-medium text-rose-700/80">年間経費</p>
+              <Receipt className="size-4 text-rose-500" />
+            </div>
+            <p className="text-2xl font-bold text-rose-600">
+              ¥{yearSummary.expense.toLocaleString()}
+            </p>
+          </div>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">年間利益</CardTitle>
-              <Wallet className="size-4 text-green-500" />
-            </CardHeader>
-            <CardContent>
-              <div
-                className={`text-2xl font-bold ${yearSummary.profit >= 0 ? "text-green-600" : "text-red-600"}`}
-              >
-                ¥{yearSummary.profit.toLocaleString()}
-              </div>
-            </CardContent>
-          </Card>
+          <div className="rounded-xl p-4 bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-100">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-sm font-medium text-emerald-700/80">年間利益</p>
+              <Wallet className="size-4 text-emerald-500" />
+            </div>
+            <p className={`text-2xl font-bold ${yearSummary.profit >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
+              ¥{yearSummary.profit.toLocaleString()}
+            </p>
+          </div>
         </div>
       </div>
 
@@ -332,8 +332,10 @@ export default function DashboardPage() {
                     </TableCell>
                     <TableCell>{transaction.categoryName}</TableCell>
                     <TableCell>{transaction.description}</TableCell>
-                    <TableCell className="text-right">
-                      ¥{transaction.amount.toLocaleString()}
+                    <TableCell className="text-right font-medium">
+                      <span className={transaction.type === "income" ? "text-blue-600" : "text-rose-600"}>
+                        {transaction.type === "expense" ? "-" : ""}¥{transaction.amount.toLocaleString()}
+                      </span>
                     </TableCell>
                   </TableRow>
                 ))}

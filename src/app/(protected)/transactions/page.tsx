@@ -301,11 +301,11 @@ export default function TransactionsPage() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-bold">取引記録</h1>
         <div className="flex gap-2">
-          <Button onClick={openIncomeForm} className="bg-blue-600 hover:bg-blue-700">
+          <Button onClick={openIncomeForm} className="bg-blue-500 hover:bg-blue-600 text-white">
             <TrendingUp className="mr-1.5 h-4 w-4" />
             売上登録
           </Button>
-          <Button onClick={openExpenseForm} variant="destructive">
+          <Button onClick={openExpenseForm} className="bg-rose-500 hover:bg-rose-600 text-white">
             <TrendingDown className="mr-1.5 h-4 w-4" />
             経費登録
           </Button>
@@ -446,7 +446,7 @@ export default function TransactionsPage() {
                     <TableCell className="max-w-[200px] truncate">{t.description}</TableCell>
                     <TableCell className="text-muted-foreground">{t.client || "-"}</TableCell>
                     <TableCell className="text-right font-medium">
-                      <span className={t.type === "income" ? "text-blue-600" : "text-red-600"}>
+                      <span className={t.type === "income" ? "text-blue-600" : "text-rose-600"}>
                         {t.type === "expense" ? "-" : ""}¥{t.amount.toLocaleString()}
                       </span>
                     </TableCell>
