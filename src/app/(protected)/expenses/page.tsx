@@ -117,7 +117,6 @@ export default function ExpensesPage() {
 
   // Quick-add state
   const [quickAdd, setQuickAdd] = useState<QuickAddState | null>(null);
-  const [quickAddSubmitting, setQuickAddSubmitting] = useState(false);
 
   // Success animation
   const [successAnim, setSuccessAnim] = useState<{
@@ -216,53 +215,42 @@ export default function ExpensesPage() {
     setSuccessAnim((prev) => ({ show: true, amount, key: prev.key + 1 }));
   };
 
-  const handleQuickSave = async () => {
-    if (!user || !quickAdd) return;
+  const handleQuickSave = () => {
+    if (!quickAdd) return;
     const amount = Number(quickAdd.amount);
     if (!amount || amount <= 0) {
       toast.error("金額を入力してください");
       return;
     }
 
-    setQuickAddSubmitting(true);
-    try {
-      const today = format(now, "yyyy-MM-dd");
-      await add({
-        type: "expense",
-        date: today,
-        categoryId: quickAdd.categoryId,
-        categoryName: quickAdd.categoryName,
-        amount,
-        description: quickAdd.description,
-      });
-
-      triggerSuccess(amount);
-      setQuickAdd(null);
-    } catch {
-      toast.error("記録に失敗しました");
-    } finally {
-      setQuickAddSubmitting(false);
-    }
+    // Open detail dialog pre-filled with quick-add data
+    setEditingId(null);
+    setDetailForm({
+      date: format(now, "yyyy-MM-dd"),
+      categoryId: quickAdd.categoryId,
+      amount: quickAdd.amount,
+      description: quickAdd.description,
+      client: "",
+    });
+    setSaveAsTemplate(false);
+    setTemplateName("");
+    setDetailDialogOpen(true);
+    setQuickAdd(null);
   };
 
-  const handleTemplateRegister = async (tpl: ExpenseTemplate) => {
-    if (!user) return;
-    try {
-      const today = format(now, "yyyy-MM-dd");
-      await add({
-        type: "expense",
-        date: today,
-        categoryId: tpl.categoryId,
-        categoryName: tpl.categoryName,
-        amount: tpl.amount,
-        description: tpl.description,
-        client: tpl.client || undefined,
-      });
-
-      triggerSuccess(tpl.amount);
-    } catch {
-      toast.error("登録に失敗しました");
-    }
+  const handleTemplateRegister = (tpl: ExpenseTemplate) => {
+    // Open detail dialog pre-filled with template data
+    setEditingId(null);
+    setDetailForm({
+      date: format(now, "yyyy-MM-dd"),
+      categoryId: tpl.categoryId,
+      amount: String(tpl.amount),
+      description: tpl.description,
+      client: tpl.client || "",
+    });
+    setSaveAsTemplate(false);
+    setTemplateName("");
+    setDetailDialogOpen(true);
   };
 
   const handleTemplateDelete = async (tpl: ExpenseTemplate) => {
@@ -603,17 +591,11 @@ export default function ExpensesPage() {
 
                   <Button
                     onClick={handleQuickSave}
-                    disabled={quickAddSubmitting || !quickAdd.amount}
+                    disabled={!quickAdd.amount}
                     className="w-full bg-blue-500 hover:bg-blue-600 text-white h-11 text-base font-semibold active:scale-[0.98] transition-all"
                   >
-                    {quickAddSubmitting ? (
-                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
-                    ) : (
-                      <>
-                        <Sparkles className="mr-1.5 h-4 w-4" />
-                        記録する
-                      </>
-                    )}
+                    <FileEdit className="mr-1.5 h-4 w-4" />
+                    詳細を入力して記録
                   </Button>
                 </div>
               )}
