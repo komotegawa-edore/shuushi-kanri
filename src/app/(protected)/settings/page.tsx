@@ -35,6 +35,7 @@ import {
 import { Plus, Trash2, Save } from "lucide-react";
 import { toast } from "sonner";
 import { Timestamp } from "firebase/firestore";
+import LineLinkSection from "@/components/LineLinkSection";
 
 export default function SettingsPage() {
   const { user } = useAuth();
@@ -280,6 +281,11 @@ export default function SettingsPage() {
           </div>
         </CardContent>
       </Card>
+
+      <Separator />
+
+      {/* LINE連携 */}
+      <LineLinkSection />
 
       {/* Add Category Dialog */}
       <Dialog open={categoryDialogOpen} onOpenChange={setCategoryDialogOpen}>

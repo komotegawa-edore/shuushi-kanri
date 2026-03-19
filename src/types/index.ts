@@ -103,6 +103,42 @@ export const DEFAULT_INCOME_CATEGORIES = [
   "その他収入",
 ];
 
+// ---- LINE連携 ----
+export interface LineLink {
+  lineUserId: string;
+  linkedAt: string; // ISO 8601
+}
+
+export interface LineUserMapping {
+  userId: string;
+  linkedAt: string;
+}
+
+export interface LinkingCode {
+  userId: string;
+  expiresAt: number; // Unix ms
+  createdAt: number;
+}
+
+export type ConversationStep =
+  | "IDLE"
+  | "AWAITING_CATEGORY"
+  | "AWAITING_AMOUNT"
+  | "AWAITING_DESCRIPTION"
+  | "CONFIRMING";
+
+export interface LineConversationState {
+  state: ConversationStep;
+  data: {
+    type?: "income" | "expense";
+    categoryId?: string;
+    categoryName?: string;
+    amount?: number;
+    description?: string;
+  };
+  updatedAt: number; // Unix ms
+}
+
 // ---- Gamification ----
 export interface UserStats {
   totalTransactions: number;
