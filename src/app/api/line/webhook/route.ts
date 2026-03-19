@@ -61,15 +61,6 @@ async function handleEvent(event: {
       ]);
     }
   } catch (err) {
-    // エラー内容をLINEに返して確認できるようにする
-    const errorMsg = err instanceof Error ? err.message : String(err);
-    console.error("[webhook] error:", errorMsg);
-    try {
-      await replyMessage(event.replyToken, [
-        textMessage(`[デバッグ] エラーが発生しました:\n${errorMsg}`),
-      ]);
-    } catch {
-      // reply自体が失敗した場合は無視
-    }
+    console.error("[webhook] error:", err);
   }
 }
