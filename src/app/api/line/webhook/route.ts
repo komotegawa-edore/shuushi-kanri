@@ -8,17 +8,19 @@ export async function POST(req: NextRequest) {
   const signature = req.headers.get("x-line-signature") || "";
 
   if (!verifySignature(body, signature)) {
+    console.error("[webhook] signature verification failed");
     return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
   }
 
   const parsed = JSON.parse(body);
   const events = parsed.events || [];
+  console.log("[webhook] events:", events.length);
 
   for (const event of events) {
     try {
       await handleEvent(event);
     } catch (err) {
-      console.error("Webhook event error:", err);
+      console.error("[webhook] event error:", err);
     }
   }
 
@@ -32,6 +34,8 @@ async function handleEvent(event: {
   message?: { type: string; text?: string };
 }) {
   const lineUserId = event.source?.userId;
+  console.log("[webhook] event type:", event.type, "userId:", lineUserId, "message:", event.message);
+
   if (!lineUserId) return;
 
   if (event.type === "follow") {
@@ -45,7 +49,6 @@ async function handleEvent(event: {
   }
 
   if (event.type === "unfollow") {
-    // ブロック時に連携解除
     const userId = await lookupByLineUserId(lineUserId);
     if (userId) {
       await removeLineLink(userId);
@@ -54,12 +57,13 @@ async function handleEvent(event: {
   }
 
   if (event.type === "message" && event.message?.type === "text") {
+    console.log("[webhook] handling text:", event.message.text);
     const result = await handleTextMessage(lineUserId, event.message.text!);
+    console.log("[webhook] reply messages:", JSON.stringify(result.messages));
     await replyMessage(event.replyToken!, result.messages);
     return;
   }
 
-  // テキスト以外のメッセージ
   if (event.type === "message") {
     await replyMessage(event.replyToken!, [
       textMessage("テキストメッセージのみ対応しています。\n「ヘルプ」と送信すると使い方を確認できます。"),

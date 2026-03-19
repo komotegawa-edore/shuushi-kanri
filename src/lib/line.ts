@@ -32,18 +32,18 @@ export async function replyMessage(
   replyToken: string,
   messages: LineMessage[]
 ): Promise<void> {
+  console.log("[line] replyMessage token:", replyToken?.slice(0, 10) + "...", "messages:", messages.length);
+  const payload = JSON.stringify({ replyToken, messages });
   const res = await fetch("https://api.line.me/v2/bot/message/reply", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${CHANNEL_ACCESS_TOKEN}`,
     },
-    body: JSON.stringify({ replyToken, messages }),
+    body: payload,
   });
-  if (!res.ok) {
-    const text = await res.text();
-    console.error("LINE reply failed:", res.status, text);
-  }
+  const resText = await res.text();
+  console.log("[line] reply response:", res.status, resText);
 }
 
 export function textMessage(text: string): LineMessage {
