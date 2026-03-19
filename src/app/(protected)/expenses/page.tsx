@@ -13,8 +13,17 @@ import {
 } from "@/lib/firestore";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import SuccessAnimation from "@/components/SuccessAnimation";
 import {
@@ -29,6 +38,10 @@ import {
   ChevronDown,
   ChevronUp,
   X,
+  FileEdit,
+  Save,
+  Pencil,
+  CalendarDays,
   Train,
   Smartphone,
   PenLine,
@@ -78,7 +91,7 @@ export default function ExpensesPage() {
   const monthStart = format(startOfMonth(now), "yyyy-MM-dd");
   const monthEnd = format(endOfMonth(now), "yyyy-MM-dd");
 
-  const { transactions, loading, add, remove } = useTransactions({
+  const { transactions, loading, add, update, remove } = useTransactions({
     type: "expense",
     startDate: monthStart,
     endDate: monthEnd,
@@ -128,6 +141,31 @@ export default function ExpensesPage() {
   const [templateSubmitting, setTemplateSubmitting] = useState(false);
 
   const [showAllExpenses, setShowAllExpenses] = useState(false);
+
+  // Detail form dialog
+  const [detailDialogOpen, setDetailDialogOpen] = useState(false);
+  const [detailForm, setDetailForm] = useState({
+    date: format(now, "yyyy-MM-dd"),
+    categoryId: "",
+    amount: "",
+    description: "",
+    client: "",
+  });
+  const [detailSubmitting, setDetailSubmitting] = useState(false);
+  const [saveAsTemplate, setSaveAsTemplate] = useState(false);
+  const [templateName, setTemplateName] = useState("");
+
+  // Edit mode
+  const [editingId, setEditingId] = useState<string | null>(null);
+
+  // Client suggestions for autocomplete
+  const clientSuggestions = useMemo(() => {
+    const names = new Set<string>();
+    transactions.forEach((t) => {
+      if (t.client) names.add(t.client);
+    });
+    return Array.from(names).sort();
+  }, [transactions]);
 
   // ---- Computed ----
   const monthlyTotal = useMemo(
@@ -297,6 +335,99 @@ export default function ExpensesPage() {
     }
   };
 
+  // Detail form handlers
+  const openDetailDialog = (categoryId?: string, categoryName?: string) => {
+    setEditingId(null);
+    setDetailForm({
+      date: format(now, "yyyy-MM-dd"),
+      categoryId: categoryId || "",
+      amount: "",
+      description: "",
+      client: "",
+    });
+    setSaveAsTemplate(false);
+    setTemplateName("");
+    setDetailDialogOpen(true);
+  };
+
+  const openEditDialog = (t: typeof transactions[0]) => {
+    setEditingId(t.id);
+    setDetailForm({
+      date: t.date,
+      categoryId: t.categoryId,
+      amount: String(t.amount),
+      description: t.description,
+      client: t.client ?? "",
+    });
+    setSaveAsTemplate(false);
+    setTemplateName("");
+    setDetailDialogOpen(true);
+  };
+
+  const handleDetailSubmit = async () => {
+    if (!user) return;
+    if (!detailForm.categoryId) {
+      toast.error("カテゴリを選択してください");
+      return;
+    }
+    const amount = Number(detailForm.amount);
+    if (!amount || amount <= 0) {
+      toast.error("金額を入力してください");
+      return;
+    }
+    if (!detailForm.date) {
+      toast.error("日付を入力してください");
+      return;
+    }
+    const category = expenseCategories.find((c) => c.id === detailForm.categoryId);
+    if (!category) {
+      toast.error("カテゴリが見つかりません");
+      return;
+    }
+
+    setDetailSubmitting(true);
+    try {
+      const payload = {
+        type: "expense" as const,
+        date: detailForm.date,
+        categoryId: detailForm.categoryId,
+        categoryName: category.name,
+        amount,
+        description: detailForm.description,
+        client: detailForm.client || undefined,
+      };
+
+      if (editingId) {
+        await update(editingId, payload);
+        toast.success("経費を更新しました");
+      } else {
+        await add(payload);
+        triggerSuccess(amount);
+      }
+
+      // Save as template
+      if (saveAsTemplate && !editingId) {
+        const tplName = templateName.trim() || detailForm.description || category.name;
+        await addExpenseTemplate(user.uid, {
+          name: tplName,
+          amount,
+          categoryId: detailForm.categoryId,
+          categoryName: category.name,
+          description: detailForm.description,
+          client: detailForm.client,
+        });
+        await loadTemplates();
+        toast.success(`テンプレート「${tplName}」を保存しました`);
+      }
+
+      setDetailDialogOpen(false);
+    } catch {
+      toast.error("エラーが発生しました");
+    } finally {
+      setDetailSubmitting(false);
+    }
+  };
+
   if (!user) return null;
   const isLoading = loading || categoriesLoading;
 
@@ -311,14 +442,23 @@ export default function ExpensesPage() {
       />
 
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold flex items-center gap-2">
-          <Receipt className="h-6 w-6 text-blue-500" />
-          経費記録
-        </h1>
-        <p className="text-muted-foreground text-sm mt-1">
-          カテゴリをタップ → 金額を入力 → 完了
-        </p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-bold flex items-center gap-2">
+            <Receipt className="h-6 w-6 text-blue-500" />
+            経費記録
+          </h1>
+          <p className="text-muted-foreground text-sm mt-1">
+            カテゴリをタップ → 金額を入力 → 完了
+          </p>
+        </div>
+        <Button
+          onClick={() => openDetailDialog()}
+          className="bg-blue-500 hover:bg-blue-600 text-white"
+        >
+          <FileEdit className="h-4 w-4 mr-1.5" />
+          詳細入力
+        </Button>
       </div>
 
       {/* Monthly Total */}
@@ -815,10 +955,18 @@ export default function ExpensesPage() {
                       {t.client && ` ・ ${t.client}`}
                     </p>
                   </div>
-                  <div className="flex items-center gap-1.5 shrink-0">
+                  <div className="flex items-center gap-1 shrink-0">
                     <span className="text-sm font-bold text-blue-600 dark:text-blue-400 tabular-nums">
                       -¥{t.amount.toLocaleString()}
                     </span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={() => openEditDialog(t)}
+                    >
+                      <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
+                    </Button>
                     <Button
                       variant="ghost"
                       size="sm"
@@ -834,6 +982,183 @@ export default function ExpensesPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Detail Dialog */}
+      <Dialog open={detailDialogOpen} onOpenChange={setDetailDialogOpen}>
+        <DialogContent className="sm:max-w-[480px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {editingId ? (
+                <>
+                  <Pencil className="h-5 w-5 text-blue-500" />
+                  経費を編集
+                </>
+              ) : (
+                <>
+                  <FileEdit className="h-5 w-5 text-blue-500" />
+                  経費を詳細入力
+                </>
+              )}
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            {/* Date */}
+            <div className="space-y-1.5">
+              <Label className="flex items-center gap-1.5 text-sm font-medium">
+                <CalendarDays className="h-3.5 w-3.5" />
+                日付
+              </Label>
+              <Input
+                type="date"
+                value={detailForm.date}
+                onChange={(e) =>
+                  setDetailForm((prev) => ({ ...prev, date: e.target.value }))
+                }
+              />
+            </div>
+
+            {/* Category */}
+            <div className="space-y-1.5">
+              <Label className="text-sm font-medium">カテゴリ</Label>
+              <div className="flex flex-wrap gap-1.5">
+                {expenseCategories.map((cat) => {
+                  const isSelected = detailForm.categoryId === cat.id;
+                  return (
+                    <Button
+                      key={cat.id}
+                      type="button"
+                      variant={isSelected ? "default" : "outline"}
+                      size="sm"
+                      onClick={() =>
+                        setDetailForm((prev) => ({
+                          ...prev,
+                          categoryId: cat.id,
+                        }))
+                      }
+                      className={
+                        isSelected ? "bg-blue-500 hover:bg-blue-600" : ""
+                      }
+                    >
+                      <CategoryIcon name={cat.name} className="h-3.5 w-3.5 mr-1" />
+                      {cat.name}
+                    </Button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Amount */}
+            <div className="space-y-1.5">
+              <Label className="text-sm font-medium">金額</Label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-blue-500 font-bold text-lg">
+                  ¥
+                </span>
+                <Input
+                  type="number"
+                  min="0"
+                  inputMode="numeric"
+                  placeholder="0"
+                  value={detailForm.amount}
+                  onChange={(e) =>
+                    setDetailForm((prev) => ({
+                      ...prev,
+                      amount: e.target.value,
+                    }))
+                  }
+                  className="pl-9 text-lg font-bold h-11"
+                />
+              </div>
+            </div>
+
+            {/* Description */}
+            <div className="space-y-1.5">
+              <Label className="text-sm font-medium">メモ</Label>
+              <Textarea
+                placeholder="内容を入力（任意）"
+                value={detailForm.description}
+                onChange={(e) =>
+                  setDetailForm((prev) => ({
+                    ...prev,
+                    description: e.target.value,
+                  }))
+                }
+                rows={2}
+              />
+            </div>
+
+            {/* Client */}
+            <div className="space-y-1.5">
+              <Label className="text-sm font-medium">取引先</Label>
+              <Input
+                placeholder="取引先名（任意）"
+                value={detailForm.client}
+                onChange={(e) =>
+                  setDetailForm((prev) => ({
+                    ...prev,
+                    client: e.target.value,
+                  }))
+                }
+                list="expense-client-suggestions"
+              />
+              <datalist id="expense-client-suggestions">
+                {clientSuggestions.map((name) => (
+                  <option key={name} value={name} />
+                ))}
+              </datalist>
+            </div>
+
+            {/* Save as template (only for new entries) */}
+            {!editingId && (
+              <div className="space-y-2 rounded-lg border border-dashed border-blue-200 p-3 bg-blue-50/30">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={saveAsTemplate}
+                    onChange={(e) => setSaveAsTemplate(e.target.checked)}
+                    className="rounded border-gray-300 text-blue-500 focus:ring-blue-400"
+                  />
+                  <span className="text-sm font-medium text-blue-700">
+                    テンプレートとして保存
+                  </span>
+                </label>
+                {saveAsTemplate && (
+                  <Input
+                    placeholder="テンプレート名（空欄ならメモを使用）"
+                    value={templateName}
+                    onChange={(e) => setTemplateName(e.target.value)}
+                    className="mt-1"
+                  />
+                )}
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setDetailDialogOpen(false)}
+            >
+              キャンセル
+            </Button>
+            <Button
+              onClick={handleDetailSubmit}
+              disabled={detailSubmitting}
+              className="bg-blue-500 hover:bg-blue-600 text-white"
+            >
+              {detailSubmitting ? (
+                <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
+              ) : (
+                <>
+                  <Save className="h-4 w-4 mr-1.5" />
+                  {editingId ? "更新" : "記録する"}
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Global animations */}
       <style
