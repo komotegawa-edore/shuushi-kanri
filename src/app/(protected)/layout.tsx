@@ -73,11 +73,11 @@ export default function ProtectedLayout({
 
       {/* Sidebar */}
       <aside
-        className={`fixed lg:static inset-y-0 left-0 z-50 w-64 bg-white border-r border-blue-100/60 transform transition-transform duration-200 ease-in-out ${
+        className={`fixed lg:sticky lg:top-0 lg:h-screen inset-y-0 left-0 z-50 w-64 bg-white border-r border-blue-100/60 transform transition-transform duration-200 ease-in-out shrink-0 ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         }`}
       >
-        <div className="flex flex-col h-full">
+        <div className="flex flex-col h-full overflow-y-auto">
           <div className="flex items-center justify-between p-4 border-b border-blue-100/60">
             <Link href="/dashboard" className="flex items-center gap-2.5">
               <Image src="/icon.png" alt="スット" width={28} height={28} className="rounded-lg" />
